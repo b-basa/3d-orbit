@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Rotating Cube with Smooth Color Change and 3 Orbiting Spheres</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+  <script>
+    // Scene setup
+    const scene = new THREE.Scene();
+
+    // Camera setup
+    const camera = new THREE.PerspectiveCamera(
+      75,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1000
+    );
+    camera.position.z = 8;
+
+    // Renderer setup
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // Cube geometry and material
+    const geometry = new THREE.BoxGeometry();
+
+    // Use MeshStandardMaterial to allow color changes with smooth interpolation
+    const material = new THREE.MeshStandardMaterial({ color: 0xffffff });
+    const cube = new THREE.Mesh(geometry, material);
+    scene.add(cube);
+
+    // Create 3 smaller spheres orbiting around the cube
+    const sphereCount = 3;
+    const spheres = [];
+    const sphereGeometry = new THREE.SphereGeometry(0.15, 32, 32); // smaller radius: 0.15
+    // We'll assign distinct colors for clarity
+    const sphereColors = [
+      new THREE.Color(0xff0000),
+      new THREE.Color(0x00ff00),
+      new THREE.Color(0x0000ff)
+    ];
+
+    for (let i = 0; i < sphereCount; i++) {
+      const sphereMaterial = new THREE.MeshStandardMaterial({ color: sphereColors[i] });
+      const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+      spheres.push(sphere);
+      scene.add(sphere);
+    }
+
+    // Add lights so materials show properly
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(1, 1, 2);
+    scene.add(directionalLight);
+
+    // Helper function to get a random color as THREE.Color
+    function getRandomColor() {
+      return new THREE.Color(Math.random(), Math.random(), Math.random());
+    }
+
+    // Color transition variables for cube
+    let currentColor = new THREE.Color(1, 1, 1); // start white
+    let targetColor = getRandomColor();
+    const transitionDuration = 2000; // milliseconds
+    let transitionStartTime = Date.now();
+
+    // Orbit parameters
+    const orbitRadius = 3;
+    const orbitSpeed = 0.8; // radians per second
+
+    // Clock for consistent timing
+    const clock = new THREE.Clock();
+
+    // Animation function
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const elapsedTime = clock.getElapsedTime();
+
+      // Rotate the cube
+      cube.rotation.x += 0.01;
+      cube.rotation.y += 0.01;
+
+      // Smooth color interpolation for cube
+      let now = Date.now();
+      let elapsed = now - transitionStartTime;
+      let t = elapsed / transitionDuration;
+      if (t >= 1) {
+        currentColor.copy(targetColor);
+        targetColor = getRandomColor();
+        transitionStartTime = now;
+        t = 0;
+      }
+      const r = currentColor.r + (targetColor.r - currentColor.r) * t;
+      const g = currentColor.g + (targetColor.g - currentColor.g) * t;
+      const b = currentColor.b + (targetColor.b - currentColor.b) * t;
+      material.color.setRGB(r, g, b);
+
+      // Update each sphere's position to orbit cube perpendicular to viewport (orbit in XY plane)
+      // Each offset equally spaced around the orbit (2*PI / sphereCount * i)
+      for (let i = 0; i < sphereCount; i++) {
+        const angle = elapsedTime * orbitSpeed + (i * (2 * Math.PI / sphereCount));
+        const x = orbitRadius * Math.cos(angle);
+        const y = orbitRadius * Math.sin(angle);
+        const z = 0; // Fixed z coordinate because orbit is in XY plane
+        spheres[i].position.set(x, y, z);
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    animate();
+
+    // Handle window resize
+    window.addEventListener("resize", () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>
