@@ -1,0 +1,12 @@
+stages:
+    - deploy
+
+gitlab-pages:
+    when: manual
+    stage: deploy
+    script:
+        - mkdir -p public
+        - cp index.html public/
+    pages: true
+    rules:
+        - if: '$CI_COMMIT_BRANCH == "master"'
